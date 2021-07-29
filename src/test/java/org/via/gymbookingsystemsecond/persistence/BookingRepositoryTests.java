@@ -2,116 +2,156 @@ package org.via.gymbookingsystemsecond.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.via.gymbookingsystemsecond.util.RandomUtils.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.test.web.servlet.MockMvc;
 import org.via.gymbookingsystemsecond.domain.Account;
 import org.via.gymbookingsystemsecond.domain.Booking;
 import org.via.gymbookingsystemsecond.domain.Gym;
+import org.via.gymbookingsystemsecond.service.dto.BookingDTO;
+import org.via.gymbookingsystemsecond.service.dto.CreateBookingDTO;
 
 @SpringBootTest
+@AutoConfigureMockMvc
 public class BookingRepositoryTests {
 
-	@Autowired private BookingRepository repo;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper mapper;
 
-	@Autowired private GymRepository gymRepo;
-	@Autowired private AccountRepository accRepo;
+    @Autowired
+    private BookingRepository repo;
+    @Autowired
+    private GymRepository gymRepo;
+    @Autowired
+    private AccountRepository accRepo;
 
-	@Test
-	void testCreateBooking() {
-		Account a = accRepo.add(randAccount());
-		Gym g = gymRepo.add(randGym());
+    @Test
+    void testCreateBooking() throws Exception {
+        Account acc = mapper. readValue(mockMvc.perform(post("/accounts/register")
+                .contentType("application/json")
+                .content(mapper.writeValueAsString(randAccount())))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString(), Account.class);
 
-		Booking b = new Booking(a, g,
-				LocalDate.now(),
-				getRandom().nextInt(24));
+        Gym gym = mapper.readValue(
+                mockMvc.perform(
+                        post("/gyms/createGym")
+                                .contentType("application/json")
+                                .content(mapper.writeValueAsString(randGym()))
+                ).andExpect(status().isCreated())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString()
+                , Gym.class);
 
-		Booking resp = repo.add(b);
+        CreateBookingDTO b = new CreateBookingDTO(acc.getId(), gym.getId(), LocalDate.now(), 11);
 
-		assertEquals(b.getAccount(), resp.getAccount());
-		assertEquals(b.getGym(), resp.getGym());
-		assertEquals(b.getDate(), resp.getDate());
-		assertEquals(b.getHour(), resp.getHour());
-	}
+        BookingDTO booking = mapper.readValue(
+                mockMvc.perform(
+                        post("/bookings/createBooking")
+                                .contentType("application/json")
+                                .content(mapper.writeValueAsString(b))
+                ).andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString()
+                , BookingDTO.class);
 
-	@Test
-	void testFindByAccountIdAndGymId() {
-		Account a = accRepo.add(randAccount());
-		Gym g = gymRepo.add(randGym());
+        assertEquals(b.getAccountId(), booking.getAccount().getId());
+        assertEquals(b.getGymId(), booking.getGym().getId());
+        assertEquals(b.getDate(), booking.getDate());
+        assertEquals(b.getHour(), booking.getHour());
+    }
 
-		Booking b = repo.add(new Booking(
-					a, g, LocalDate.now(), getRandom().nextInt(24)));
+    @Test
+    void testFindByAccountIdAndGymId() {
+        Account a = accRepo.add(randAccount());
+        Gym g = gymRepo.add(randGym());
 
-		List<Booking> resp = repo.findByAccountIdAndGymId(
-				b.getAccount().getId(),
-				b.getGym().getId());
+        Booking b = repo.add(new Booking(
+                a, g, LocalDate.now(), getRandom().nextInt(24)));
 
-		assertTrue(resp.contains(b));
-	}
+        List<Booking> resp = repo.findByAccountIdAndGymId(
+                b.getAccount().getId(),
+                b.getGym().getId());
 
-	@Test
-	void testFindByAccountIdAndGymIdAndDate() {
-		Account a = accRepo.add(randAccount());
-		Gym g = gymRepo.add(randGym());
+        assertTrue(resp.contains(b));
+    }
 
-		Booking b = repo.add(new Booking(
-					a, g, LocalDate.now(), getRandom().nextInt(24)));
+    @Test
+    void testFindByAccountIdAndGymIdAndDate() {
+        Account a = accRepo.add(randAccount());
+        Gym g = gymRepo.add(randGym());
 
-		System.out.println("################################################");
+        Booking b = repo.add(new Booking(
+                a, g, LocalDate.now(), getRandom().nextInt(24)));
 
-		List<Booking> resp = repo.findByAccountIdAndGymIdAndDate(
-				b.getAccount().getId(),
-				b.getGym().getId(),
-				b.getDate());
+        System.out.println("################################################");
 
-		System.out.println("################################################");
-		System.out.println(b);
-		System.out.println("################################################");
-		System.out.println(resp);
-		System.out.println("################################################");
+        List<Booking> resp = repo.findByAccountIdAndGymIdAndDate(
+                b.getAccount().getId(),
+                b.getGym().getId(),
+                b.getDate());
 
-		assertTrue(resp.contains(b));
-	}
+        System.out.println("################################################");
+        System.out.println(b);
+        System.out.println("################################################");
+        System.out.println(resp);
+        System.out.println("################################################");
 
-	@Test
-	void testFindByGymIdAndDateAndHour() {
-		Account a = accRepo.add(randAccount());
-		Gym g = gymRepo.add(randGym());
+        assertTrue(resp.contains(b));
+    }
 
-		Booking b = repo.add(new Booking(
-					a, g, LocalDate.now(), getRandom().nextInt(24)));
+    @Test
+    void testFindByGymIdAndDateAndHour() {
+        Account a = accRepo.add(randAccount());
+        Gym g = gymRepo.add(randGym());
 
-		List<Booking> resp = repo.findByGymIdAndDateAndHour(
-				b.getGym().getId(),
-				b.getDate(),
-				b.getHour());
+        Booking b = repo.add(new Booking(
+                a, g, LocalDate.now(), getRandom().nextInt(24)));
 
-		assertTrue(resp.contains(b));
-	}
+        List<Booking> resp = repo.findByGymIdAndDateAndHour(
+                b.getGym().getId(),
+                b.getDate(),
+                b.getHour());
 
-	@Test
-	void testCountByGymIdAndDateAndHour() {
-		Account a = accRepo.add(randAccount());
-		Gym g = gymRepo.add(randGym());
+        assertTrue(resp.contains(b));
+    }
 
-		Booking b = repo.add(new Booking(
-					a, g, LocalDate.now(), getRandom().nextInt(24)));
+    @Test
+    void testCountByGymIdAndDateAndHour() {
+        Account a = accRepo.add(randAccount());
+        Gym g = gymRepo.add(randGym());
 
-		int resp = repo.countByGymIdAndDateAndHour(
-				b.getGym().getId(),
-				b.getDate(),
-				b.getHour());
+        Booking b = repo.add(new Booking(
+                a, g, LocalDate.now(), getRandom().nextInt(24)));
 
-		List<Booking> all = repo.findByGymIdAndDateAndHour(
-				b.getGym().getId(),
-				b.getDate(),
-				b.getHour());
+        int resp = repo.countByGymIdAndDateAndHour(
+                b.getGym().getId(),
+                b.getDate(),
+                b.getHour());
 
-		assertEquals(all.size(), resp);
-	}
+        List<Booking> all = repo.findByGymIdAndDateAndHour(
+                b.getGym().getId(),
+                b.getDate(),
+                b.getHour());
+
+        assertEquals(all.size(), resp);
+    }
 }

@@ -1,6 +1,7 @@
 package org.via.gymbookingsystemsecond.persistence;
 
 import java.util.List;
+import java.util.Optional;
 
 @org.springframework.stereotype.Repository
 public interface Repository<T> {
@@ -12,4 +13,5 @@ public interface Repository<T> {
 	T update(T entity);
 
 	void remove(T entity);
+
 }

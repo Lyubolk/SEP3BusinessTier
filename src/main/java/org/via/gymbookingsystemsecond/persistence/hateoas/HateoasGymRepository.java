@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 import org.via.gymbookingsystemsecond.domain.Gym;
 import org.via.gymbookingsystemsecond.persistence.GymRepository;
 
+import java.util.Optional;
+
 @Component
 public class HateoasGymRepository extends HateoasRepository<Gym> implements GymRepository {
 
@@ -19,5 +21,10 @@ public class HateoasGymRepository extends HateoasRepository<Gym> implements GymR
 	@Override
 	protected String getId(Gym entity) {
 		return String.valueOf(entity.getId());
+	}
+
+	@Override
+	public Optional<Gym> findById(Long id) {
+		return getItem(url("" + id));
 	}
 }

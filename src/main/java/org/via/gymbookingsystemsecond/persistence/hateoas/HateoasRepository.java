@@ -100,4 +100,5 @@ public abstract class HateoasRepository<T> implements Repository<T> {
 	}
 
 	protected abstract String getId(T entity);
+
 }

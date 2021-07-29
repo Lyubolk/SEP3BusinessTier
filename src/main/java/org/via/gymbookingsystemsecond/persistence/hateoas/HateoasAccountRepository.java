@@ -21,6 +21,11 @@ public class HateoasAccountRepository extends HateoasRepository<Account> impleme
 	}
 
 	@Override
+	public Optional<Account> findById(Long id) {
+		return getItem(url("" + id));
+	}
+
+	@Override
 	public Optional<Account> findByEmail(String email) {
 		UriComponentsBuilder uriBuilder = UriComponentsBuilder
 			.fromHttpUrl(url("search/findByEmail"))
